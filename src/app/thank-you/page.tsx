@@ -8,9 +8,13 @@ export default function ThankYouPage() {
             {/* Simple Header */}
             <header className="py-6 px-4 md:px-8 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <span className="text-2xl">🍪</span>
-                        <span className="font-serif text-xl font-bold text-cookie-900 tracking-tight">CookieCraft AI</span>
+                    <div className="flex items-center gap-2 relative w-40 h-10">
+                        <Image
+                            src="/assets/images/logo-transparent.png"
+                            alt="CookieCraft AI"
+                            fill
+                            className="object-contain object-left"
+                        />
                     </div>
                 </div>
             </header>
@@ -35,11 +39,10 @@ export default function ThankYouPage() {
                 <div className="bg-white p-4 rounded-2xl shadow-xl mb-12 transform hover:scale-[1.01] transition-transform duration-300">
                     <div className="aspect-video w-full bg-gray-900 rounded-xl relative group overflow-hidden cursor-pointer">
                         <Image
-                            src="https://picsum.photos/seed/bakingvideo/1200/675"
-                            alt="Video Thumbnail"
+                            src="/assets/images/cookies-closeup-gourmet.jpg"
+                            alt="Video Thumbnail showing gourmet cookies"
                             fill
                             className="object-cover opacity-80 group-hover:opacity-60 transition-opacity"
-                            unoptimized
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center pl-1 group-hover:scale-110 transition-transform duration-300 shadow-2xl">

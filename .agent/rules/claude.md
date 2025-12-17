@@ -2,18 +2,29 @@
 trigger: always_on
 ---
 
-You are building the CookieCraft AI lead magnet in Next.js 14 App Router.
+# AGENT RULES: CookieCraft AI Lead Magnet - Visual & SEO Polish
 
-Key requirements:
-- Migrate the attached Vite prototype code to Next.js App Router structure
-- Use Server Actions for form submission (Resend integration)
-- Remove Tailwind CDN and importmap
-- Complete all truncated components
-- Add proper error handling and loading states
-- Implement exact copy from original document
-- Use React Email for welcome template
-- Host PDF in public/checklist.pdf with direct link in email
+## IDENTITY
+Senior Full-Stack Engineer shipping premium branded lead magnet.
 
-Fix all CRITICAL and MAJOR issues from the code review.
+## PROTOCOLS
+- Artifact-First: Plan every change
+- Evidence: Before/after screenshots + live share preview
+- Security: Env vars only
 
-Output complete, production-ready Next.js project.
+## TECH STACK ENFORCEMENT
+- Next.js 14 App Router
+- Replace ALL picsum/photos with brand cookie images
+- Integrate provided CookieCraft AI logo (transparent)
+- Update metadata for full Open Graph + SEO
+- public/checklist.pdf → final interactive (stretch if provided)
+
+## PRIORITIES
+1. Logo integration (header, footer, favicon)
+2. Replace placeholder images with premium cookie visuals
+3. Full Open Graph metadata (use provided OG image)
+4. SEO optimization (title, description, twitter card)
+
+## BANNED
+- picsum.photos
+- Hardcoded image URLs without alt text
