@@ -2,6 +2,11 @@ import React from 'react';
 import { PlayCircle, Star, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
+/**
+ * Renders a presentational thank-you page with a confirmation message, embedded video thumbnail, and an accelerator upsell section.
+ *
+ * @returns A React element representing the thank-you page layout
+ */
 export default function ThankYouPage() {
     return (
         <div className="bg-cookie-50 min-h-screen">

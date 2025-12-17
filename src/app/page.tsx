@@ -3,6 +3,13 @@ import { Check, ShieldCheck, TrendingUp, BookOpen, AlertCircle } from 'lucide-re
 import EmailForm from '@/components/EmailForm';
 import Image from 'next/image';
 
+/**
+ * Render the CookieCraft AI landing page composed of header, hero, problem/agitation, features, social proof, final CTA, and footer sections.
+ *
+ * The component outputs a responsive layout with promotional content, call-to-action EmailForm elements, illustrative images, and feature/trust blocks arranged for large and small screens.
+ *
+ * @returns The landing page's React element tree.
+ */
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-cookie-50">
