@@ -23,7 +23,7 @@ Senior Full-Stack Engineer shipping premium branded lead magnet.
 1. Logo integration (header, footer, favicon)
 2. Replace placeholder images with premium cookie visuals
 3. Full Open Graph metadata (use provided OG image)
-4. SEO optimization (title, description, twitter card)
+4. SEO (title, description, twitter card)
 
 ## BANNED
 - picsum.photos
