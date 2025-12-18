@@ -2,10 +2,6 @@
 
 import { z } from 'zod';
 
-const emailSchema = z.object({
-    email: z.string().email('Please enter a valid email address'),
-});
-
 type FormState = {
     message: string;
     success?: boolean;
@@ -14,44 +10,91 @@ type FormState = {
     };
 };
 
+// Zod v4 best practice
+const emailSchema = z.object({
+    email: z.string().email({ message: 'Valid email required' }),
+});
+
+// Fail fast at module load
+if (!process.env.N8N_WEBHOOK_URL?.trim()) {
+    throw new Error('N8N_WEBHOOK_URL environment variable is missing or empty. Add it in Vercel dashboard.');
+}
+
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
+const MAX_RETRIES = 3;
+const BASE_DELAY = 1000; // ms
+
 /**
- * Validate an email extracted from `formData` and send it to the external webhook, returning an updated form state.
- *
- * @param prevState - The previous form state to base the returned state on
- * @param formData - A FormData instance that must include an `email` field
- * @returns A FormState object: `success: true` with a success message when the webhook request succeeds; otherwise `success: false` with either validation `errors` and message `'Invalid input'` or a generic failure message if sending fails
+ * Submit lead email to N8N webhook with retries and timeout
  */
 export async function submitLead(prevState: FormState, formData: FormData): Promise<FormState> {
-    // Validate input
-    const validatedFields = emailSchema.safeParse({
+    const validated = emailSchema.safeParse({
         email: formData.get('email'),
     });
 
-    if (!validatedFields.success) {
+    if (!validated.success) {
         return {
-            success: false,
             message: 'Invalid input',
-            errors: validatedFields.error.flatten().fieldErrors,
-        };
-    }
-
-    const email = validatedFields.data.email;
-
-    try {
-        const response = await fetch('https://n8n.srv1020587.hstgr.cloud/webhook/2e149eeb-90c6-4413-ab3e-165638ba0b83', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-        });
-
-        if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
-
-        return { success: true, message: 'Checklist sent successfully!' };
-    } catch (error) {
-        console.error('N8N webhook error:', error);
-        return {
             success: false,
-            message: 'Failed to send email. Please try again.',
+            errors: validated.error.flatten().fieldErrors,
         };
     }
-}
+
+    const { email } = validated.data;
+    let attempt = 1;
+
+    while (attempt <= MAX_RETRIES) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            const response = await fetch(N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const isServerError = response.status >= 500;
+                throw new Error(
+                    isServerError
+                        ? `Webhook failed: ${response.status} (Server error)`
+                        : `Webhook failed: ${response.status}`
+                );
+            }
+
+            return {
+                message: 'Checklist sent! Check your inbox.',
+                success: true,
+            };
+        } catch (error) {
+            const isRetryable = error instanceof Error && (
+                error.name === 'AbortError' ||
+                error.name === 'TypeError' ||
+                error.message.includes('Server error')
+            );
+
+            if (isRetryable && attempt < MAX_RETRIES) {
+                const delay = BASE_DELAY * Math.pow(2, attempt - 1);
+                console.warn(`Attempt ${attempt} failed. Retrying in ${delay}ms...`, error);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                attempt++;
+                continue;
+            }
+
+            console.error('N8N webhook final error:', error);
+            return {
+                message: attempt === MAX_RETRIES
+                    ? 'Failed after multiple attempts. Try again later.'
+                    : 'Failed to send. Please try again.',
+                success: false,
+            };
+        }
+    }
+
+    // TypeScript safety
+    return { message: 'Unexpected error.', success: false };
+} 
