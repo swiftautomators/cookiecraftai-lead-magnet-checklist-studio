@@ -2,49 +2,27 @@
 
 import { z } from 'zod';
 
-const emailSchema = z.object({
-    email: z.string().email('Please enter a valid email address'),
+const schema = z.object({
+    email: z.string().email(),
 });
 
-type FormState = {
-    message: string;
-    success?: boolean;
-    errors?: {
-        email?: string[];
-    };
-};
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL!;
+const MAX_RETRIES = 3;
+const BASE_DELAY = 1000; // ms
 
-export async function submitLead(prevState: FormState, formData: FormData): Promise<FormState> {
-    // Validate input
-    const validatedFields = emailSchema.safeParse({
+export async function submitLead(formData: FormData) {
+    const { email } = schema.parse({
         email: formData.get('email'),
     });
 
-    if (!validatedFields.success) {
-        return {
-            success: false,
-            message: 'Invalid input',
-            errors: validatedFields.error.flatten().fieldErrors,
-        };
-    }
+    let attempt = 1;
 
-    const email = validatedFields.data.email;
-    const webhookUrl = process.env.N8N_WEBHOOK_URL;
-
-    if (!webhookUrl) {
-        console.error('Configuration Error: N8N_WEBHOOK_URL is missing.');
-        return { success: false, message: 'System configuration error.' };
-    }
-
-    const MAX_RETRIES = 3;
-    const BASE_DELAY = 1000; // 1 second
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
+    while (attempt <= MAX_RETRIES) {
         try {
-            const response = await fetch(webhookUrl, {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+            const response = await fetch(N8N_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),
@@ -54,22 +32,14 @@ export async function submitLead(prevState: FormState, formData: FormData): Prom
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                // Retry on server errors (5xx)
-                if (response.status >= 500) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-                // Client errors (4xx) are fatal, don't retry
                 throw new Error(`Webhook failed: ${response.status}`);
             }
 
-            return { success: true, message: 'Checklist sent successfully!' };
-
+            return { success: true };
         } catch (error) {
-            clearTimeout(timeoutId);
-
             const isRetryable = error instanceof Error && (
-                error.name === 'AbortError' ||
-                error.name === 'TypeError' || // Network error
+                error.name === 'AbortError' || // Timeout
+                error.name === 'TypeError' || // Network
                 error.message.includes('Server error')
             );
 
@@ -77,19 +47,20 @@ export async function submitLead(prevState: FormState, formData: FormData): Prom
                 const delay = BASE_DELAY * Math.pow(2, attempt - 1);
                 console.warn(`Attempt ${attempt} failed. Retrying in ${delay}ms...`, error);
                 await new Promise(resolve => setTimeout(resolve, delay));
+                attempt++;
                 continue;
             }
 
             console.error('N8N webhook error:', error);
-            // If it's the last attempt or not retryable, return failure
-            if (attempt === MAX_RETRIES || !isRetryable) {
-                return {
-                    success: false,
-                    message: 'Failed to send email. Please try again.',
-                };
-            }
+            return {
+                success: false,
+                message: attempt === MAX_RETRIES
+                    ? 'Failed to send email after multiple attempts.'
+                    : 'Failed to send email. Please try again.',
+            };
         }
     }
 
-    return { success: false, message: 'Failed to send email after multiple attempts.' };
+    // Unreachable, but TS safety
+    return { success: false, message: 'Unexpected error occurred.' };
 }
