@@ -14,6 +14,13 @@ type FormState = {
     };
 };
 
+/**
+ * Validate an email extracted from `formData` and send it to the external webhook, returning an updated form state.
+ *
+ * @param prevState - The previous form state to base the returned state on
+ * @param formData - A FormData instance that must include an `email` field
+ * @returns A FormState object: `success: true` with a success message when the webhook request succeeds; otherwise `success: false` with either validation `errors` and message `'Invalid input'` or a generic failure message if sending fails
+ */
 export async function submitLead(prevState: FormState, formData: FormData): Promise<FormState> {
     // Validate input
     const validatedFields = emailSchema.safeParse({
