@@ -36,7 +36,7 @@ export default function EmailForm({ className = "" }: { className?: string }) {
         formData.append('email', data.email);
 
         // Call Server Action
-        const result = await submitLead({ message: '' }, formData);
+        const result = await submitLead(formData);
 
         if (result.success) {
             router.push('/thank-you');

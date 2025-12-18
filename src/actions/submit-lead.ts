@@ -6,9 +6,13 @@ const schema = z.object({
     email: z.string().email(),
 });
 
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL!;
+if (!process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL.trim() === '') {
+    throw new Error('N8N_WEBHOOK_URL environment variable is missing or empty. Add it in Vercel dashboard.');
+}
+
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
 const MAX_RETRIES = 3;
-const BASE_DELAY = 1000; // ms
+const BASE_DELAY = 1000;
 
 export async function submitLead(formData: FormData) {
     const { email } = schema.parse({
@@ -20,7 +24,7 @@ export async function submitLead(formData: FormData) {
     while (attempt <= MAX_RETRIES) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
 
             const response = await fetch(N8N_WEBHOOK_URL, {
                 method: 'POST',
@@ -32,14 +36,19 @@ export async function submitLead(formData: FormData) {
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                throw new Error(`Webhook failed: ${response.status}`);
+                const isServerError = response.status >= 500;
+                throw new Error(
+                    isServerError
+                        ? `Webhook failed: ${response.status} (Server error)`
+                        : `Webhook failed: ${response.status}`
+                );
             }
 
             return { success: true };
         } catch (error) {
             const isRetryable = error instanceof Error && (
-                error.name === 'AbortError' || // Timeout
-                error.name === 'TypeError' || // Network
+                error.name === 'AbortError' ||
+                error.name === 'TypeError' ||
                 error.message.includes('Server error')
             );
 
@@ -61,6 +70,5 @@ export async function submitLead(formData: FormData) {
         }
     }
 
-    // Unreachable, but TS safety
     return { success: false, message: 'Unexpected error occurred.' };
 }
