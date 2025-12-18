@@ -6,16 +6,24 @@ const schema = z.object({
     email: z.string().email(),
 });
 
-if (!process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL.trim() === '') {
-    throw new Error('N8N_WEBHOOK_URL environment variable is missing or empty. Add it in Vercel dashboard.');
-}
+type FormState = {
+    message: string;
+    success?: boolean;
+    errors?: {
+        email?: string[];
+    };
+};
 
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
-const MAX_RETRIES = 3;
-const BASE_DELAY = 1000;
-
-export async function submitLead(formData: FormData) {
-    const { email } = schema.parse({
+/**
+ * Validate an email extracted from `formData` and send it to the external webhook, returning an updated form state.
+ *
+ * @param prevState - The previous form state to base the returned state on
+ * @param formData - A FormData instance that must include an `email` field
+ * @returns A FormState object: `success: true` with a success message when the webhook request succeeds; otherwise `success: false` with either validation `errors` and message `'Invalid input'` or a generic failure message if sending fails
+ */
+export async function submitLead(prevState: FormState, formData: FormData): Promise<FormState> {
+    // Validate input
+    const validatedFields = emailSchema.safeParse({
         email: formData.get('email'),
     });
 
@@ -69,6 +77,4 @@ export async function submitLead(formData: FormData) {
             };
         }
     }
-
-    return { success: false, message: 'Unexpected error occurred.' };
 }
